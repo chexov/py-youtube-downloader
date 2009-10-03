@@ -17,15 +17,15 @@ LOG.setLevel(logging.DEBUG)
 def _reporthook(numblocks, blocksize, filesize, url=None):
     #print "reporthook(%s, %s, %s)" % (numblocks, blocksize, filesize)
     base = os.path.basename(url)
-    #base = "Progress "
+    sys.stdout.write("\n")
     #XXX Should handle possible filesize=-1.
     try:
         percent = min((numblocks*blocksize*100)/filesize, 100)
     except:
         percent = 100
     if numblocks != 0:
-        sys.stdout.write("\b"*80)
-        sys.stdout.write("%-66s %3d%%" % (base, percent))
+        sys.stdout.write("\b"*77)
+        sys.stdout.write("%66s %3d%%" % (base, percent))
 
 
 def geturl(url, dst):
@@ -41,7 +41,8 @@ def downloadFileByUrl(url, filename=None):
    try:
        f = urllib2.urlopen(url)
        if filename:
-           return geturl(url, filename)
+           geturl(url, filename)
+           return True
        else:
            data = f.read()
            f.close()
@@ -50,9 +51,6 @@ def downloadFileByUrl(url, filename=None):
    except urllib2.HTTPError, e:
        LOG.critical("Can't process with download: %s" % e)
        return None
-   finally:
-       return data
-
 
 
 class YoutubePlaylistHTMLParser(HTMLParser):
@@ -172,7 +170,8 @@ class Youtube(object):
             LOG.debug("Can't get HD video url")
         else:
             #LOG.debug("Downloading %s -> %s" % (url, outFilePath))
-            if not downloadFileByUrl(url, outFilePath_tmp):
+            finished = downloadFileByUrl(url, outFilePath_tmp)
+            if not finished:
                 LOG.debug("HD Video not found '%s'" % url)
         
         LOG.debug("Trying to get HQ video")
@@ -181,7 +180,8 @@ class Youtube(object):
             LOG.debug("Can't get HQ video url")
         else:
             #LOG.debug("Downloading %s -> %s" % (url, outFilePath))
-            if not downloadFileByUrl(url, outFilePath_tmp):
+            finished = downloadFileByUrl(url, outFilePath_tmp)
+            if not finished:
                 LOG.debug("HQ video not found '%s'" % url)
         
         if finished:
