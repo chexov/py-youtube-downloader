@@ -17,19 +17,18 @@ LOG.setLevel(logging.DEBUG)
 def _reporthook(numblocks, blocksize, filesize, url=None):
     #print "reporthook(%s, %s, %s)" % (numblocks, blocksize, filesize)
     base = os.path.basename(url)
-    sys.stdout.write("\n")
     #XXX Should handle possible filesize=-1.
     try:
         percent = min((numblocks*blocksize*100)/filesize, 100)
     except:
         percent = 100
     if numblocks != 0:
-        sys.stdout.write("\b"*77)
-        sys.stdout.write("%66s %3d%%" % (base, percent))
+        print "\r%66s %3d%%" % (base, percent) ,
 
 
 def geturl(url, dst):
-    LOG.info("Downloading url '%s' to '%s'" % (url, dst) )
+    LOG.debug("Video URL is '%s'" % (url) )
+    LOG.info("Saving video to '%s'" % (dst) )
     if sys.stdout.isatty():
         return urllib.urlretrieve(url, dst, lambda nb, bs, fs, url=url: _reporthook(nb,bs,fs,dst))
         #sys.stdout.write('\n')
@@ -119,8 +118,10 @@ class Youtube(object):
         match = re.search(r"<title>(.+)</title>", htmlpage)
         if match:
             title = match.group(1)
+            title = title.decode('utf-8')
             if clean:
-                title = re.sub("[^a-z.0-9A-Z:-]", "_", title.strip().lower())
+                title = re.sub(ur"[^a-zA-Z0-9\W*]", "_", title, re.UNICODE)
+                title = re.sub(ur"\s", "_", title, re.UNICODE)
         return title
     
     @staticmethod
