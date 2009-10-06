@@ -14,6 +14,19 @@ logging.basicConfig()
 LOG = logging.getLogger("youtube.downloader")
 LOG.setLevel(logging.DEBUG)
 
+FMT_MAP = {
+ '5': '320x240 H.263/MP3 mono FLV',
+ '6': '320x240 H.263/MP3 mono FLV',
+'13': '176x144 3GP/AMR mono 3GP',
+'17': '176x144 3GP/AAC mono 3GP',
+
+'18': '480x360 480x270 H.264/AAC stereo MP4',
+'22': '1280x720 H.264/AAC stereo MP4',
+
+'34': '320x240 H.264/AAC stereo FLV',
+'35': '640x480 640x360 H.264/AAC stereo FLV',
+}
+
 def _reporthook(numblocks, blocksize, filesize, url=None):
     #print "reporthook(%s, %s, %s)" % (numblocks, blocksize, filesize)
     base = os.path.basename(url)
@@ -24,7 +37,6 @@ def _reporthook(numblocks, blocksize, filesize, url=None):
         percent = 100
     if numblocks != 0:
         print "\r%66s %3d%%" % (base, percent) ,
-
 
 def geturl(url, dst):
     LOG.debug("Video URL is '%s'" % (url) )
@@ -188,7 +200,10 @@ class Youtube(object):
         if finished:
             os.rename(outFilePath_tmp, outFilePath)
         else:
-            os.remove(outFilePath_tmp)
+            try:
+                os.remove(outFilePath_tmp)
+            except OSError:
+                pass
         return finished
     
     
