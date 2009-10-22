@@ -58,6 +58,7 @@ def downloadFileByUrl(url, filename=None):
            data = f.read()
            f.close()
    except IOError, e:
+       LOG.critical("Can't process with download: %s" % e)
        return None
    except urllib2.HTTPError, e:
        LOG.critical("Can't process with download: %s" % e)
@@ -132,28 +133,32 @@ class Youtube(object):
             title = match.group(1)
             title = title.decode('utf-8')
             if clean:
-                title = re.sub(ur"[^a-zA-Z0-9\W*]", "_", title, re.UNICODE)
-                title = re.sub(ur"\s", "_", title, re.UNICODE)
+                title = re.sub(ur"[^a-zA-Z0-9\W]+", "_", title, re.UNICODE)
+                title = re.sub(ur"[\s\/]", "_", title, re.UNICODE)
         return title
     
     @staticmethod
-    def getHDVideourlByID(ID):
+    def getVideourlByFormatcodeForID(youtube_id, formatcode):
+        if str(formatcode) not in FMT_MAP.keys():
+            log.critical("Unknown code format %s. Please, check known videoformats table" % str(formatcode) )
+            return None
         videourl = None
-        token = Youtube.retriveYoutubePageToken(ID)
+        token = Youtube.retriveYoutubePageToken(youtube_id)
         if token:
-            videourl = "http://www.youtube.com/get_video.php?video_id=%s&fmt=22&t=%s" % (ID, token)
+            videourl = "http://www.youtube.com/get_video.php?video_id=%s&fmt=%s&t=%s" % (youtube_id, formatcode, token)
         return videourl
-
+    
     @staticmethod
-    def getHQVideourlByID(ID):
-        videourl = None
-        token = Youtube.retriveYoutubePageToken(ID)
-        if token:
-            videourl = "http://www.youtube.com/get_video.php?video_id=%s&fmt=18&t=%s" % (ID, token)
-        return videourl
-        
+    def downloadYoutubeVideo(youtube_id, formatcode, outFilePath=None):
+        LOG.debug("Getting video URL for video (%s)" % FMT_MAP.get(str(formatcode)) )
+        url = Youtube.getVideourlByFormatcodeForID(youtube_id, formatcode)
+        if not url:
+            LOG.debug("Can't get video url for %s format" % formatcode)
+        else:
+            return downloadFileByUrl(url, outFilePath)
+    
     @staticmethod
-    def run(youtube_id, outFilePath=None):
+    def run(youtube_id, outFilePath=None, formatcode=None):
         """
         GET youtube video ID 'youtube_id'
         RETURNS True is file properly downloaded and saved to local disk
@@ -171,31 +176,18 @@ class Youtube(object):
         data = None
         finished = False
         
+        if formatcode not in FMT_MAP.keys():
+            finished = Youtube.downloadYoutubeVideo(youtube_id, '22', outFilePath_tmp)
+            if not finished:
+                finished = Youtube.downloadYoutubeVideo(youtube_id, '18', outFilePath_tmp)
+        else:
+            finished = Youtube.downloadYoutubeVideo(youtube_id, formatcode, outFilePath_tmp)
+        
         # if file exist on local node, do not download FLV one more.
         if os.path.isfile(outFilePath):
             LOG.warning("We already have %s. Not retrieving" % (outFilePath))
             finished = True
             return finished
-        
-        LOG.debug("Trying to get HD video")
-        url = Youtube.getHDVideourlByID(youtube_id)
-        if not url:
-            LOG.debug("Can't get HD video url")
-        else:
-            #LOG.debug("Downloading %s -> %s" % (url, outFilePath))
-            finished = downloadFileByUrl(url, outFilePath_tmp)
-            if not finished:
-                LOG.debug("HD Video not found '%s'" % url)
-        
-        LOG.debug("Trying to get HQ video")
-        url = Youtube.getHQVideourlByID(youtube_id)
-        if not url:
-            LOG.debug("Can't get HQ video url")
-        else:
-            #LOG.debug("Downloading %s -> %s" % (url, outFilePath))
-            finished = downloadFileByUrl(url, outFilePath_tmp)
-            if not finished:
-                LOG.debug("HQ video not found '%s'" % url)
         
         if finished:
             os.rename(outFilePath_tmp, outFilePath)
@@ -231,19 +223,21 @@ class Youtube(object):
 
 if __name__ == "__main__":
     LOG.setLevel(logging.DEBUG)
-    usage = "usage: %prog <youtube-video-id> [youtube-video-id,..]\n       %prog -p <playlist id>"
+    usage = "usage: %prog <youtube-video-id> [youtube-video-id,..]\n       %prog -p <playlist id>\n\nKnown video format codes:\n" + str(FMT_MAP.items())
     parser = optparse.OptionParser(usage=usage)
     parser.add_option("-p", "--playlist", dest="playlist",
             help="Download all playlist videos to the current directory", default=None)
+    parser.add_option("-f", "--formatcode", dest="formatcode",
+            help="Download video of the specific format", default=None)
     
     (options, args) = parser.parse_args()
     try:
         if options.playlist:
             for vID in Youtube.get_playlist_video_ids(options.playlist):
-                Youtube.run(vID)
+                Youtube.run(vID, formatcode=options.formatcode)
         elif len(args) > 0:
             for vID in args:
-                Youtube.run(vID)
+                Youtube.run(vID, formatcode=options.formatcode)
         else:
             parser.print_help()
     except KeyboardInterrupt:
