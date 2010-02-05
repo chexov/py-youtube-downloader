@@ -25,6 +25,8 @@ FMT_MAP = {
 
 '34': '320x240 H.264/AAC stereo FLV',
 '35': '640x480 640x360 H.264/AAC stereo FLV',
+
+'37': '1920x1080 H.264/AAC stereo MP4',
 }
 
 def _reporthook(numblocks, blocksize, filesize, url=None):
@@ -70,7 +72,7 @@ class YoutubePlaylistHTMLParser(HTMLParser):
        from HTML page
     """
     PLAYLIST_ITEMS = list()
-    
+
     def __extract_video_id_from_uri(self, uri):
         """
         GET uri like '/watch?v=AsXf9v&param=1&p=3#junk'
@@ -84,17 +86,17 @@ class YoutubePlaylistHTMLParser(HTMLParser):
             if k == 'v':
                 return v
         raise ValueError("Can't find parameter 'v' from '%s'" % uri)
-    
+
     def handle_starttag(self, tag, attrs):
         if not tag == 'a':
             return 1
-        
+
         # Building dict() from attrs list(). It's easy to dealing with dict() later...
         _attrs_dict = {}
         for attr in attrs:
             key, value = attr
             _attrs_dict[key] = value
-        
+
         if _attrs_dict.get('id') and _attrs_dict.get('id').find('video-long-title') > -1:
             # We need only HREFs with 'id' == 'video-long-title.*'
             vid = self.__extract_video_id_from_uri(_attrs_dict['href'])
@@ -121,7 +123,7 @@ class Youtube(object):
         else:
             raise ValueError("Can't extract token from HTML page. Youtube changed layout. Please, contact to the author of this script")
         return token
-    
+
     @staticmethod
     def retriveYoutubePageTitle(ID, htmlpage=None, clean=False):
         title = ID
@@ -136,7 +138,7 @@ class Youtube(object):
                 title = re.sub(ur"[^a-zA-Z0-9\W]+", "_", title, re.UNICODE)
                 title = re.sub(ur"[\s\/]", "_", title, re.UNICODE)
         return title
-    
+
     @staticmethod
     def getVideourlByFormatcodeForID(youtube_id, formatcode):
         if str(formatcode) not in FMT_MAP.keys():
@@ -147,7 +149,7 @@ class Youtube(object):
         if token:
             videourl = "http://www.youtube.com/get_video.php?video_id=%s&fmt=%s&t=%s" % (youtube_id, formatcode, token)
         return videourl
-    
+
     @staticmethod
     def downloadYoutubeVideo(youtube_id, formatcode, outFilePath=None):
         LOG.debug("Getting video URL for video (%s)" % FMT_MAP.get(str(formatcode)) )
@@ -156,7 +158,7 @@ class Youtube(object):
             LOG.debug("Can't get video url for %s format" % formatcode)
         else:
             return downloadFileByUrl(url, outFilePath)
-    
+
     @staticmethod
     def run(youtube_id, outFilePath=None, formatcode=None):
         """
@@ -171,24 +173,24 @@ class Youtube(object):
             title = Youtube.retriveYoutubePageTitle(youtube_id, htmlpage, clean=True)
             outFolder = os.getcwd()
             outFilePath = os.path.join(os.getcwd(), title + '.mp4')
-        
+
         outFilePath_tmp = outFilePath + ".part"
         data = None
         finished = False
-        
+
         if formatcode not in FMT_MAP.keys():
             finished = Youtube.downloadYoutubeVideo(youtube_id, '22', outFilePath_tmp)
             if not finished:
                 finished = Youtube.downloadYoutubeVideo(youtube_id, '18', outFilePath_tmp)
         else:
             finished = Youtube.downloadYoutubeVideo(youtube_id, formatcode, outFilePath_tmp)
-        
+
         # if file exist on local node, do not download FLV one more.
         if os.path.isfile(outFilePath):
             LOG.warning("We already have %s. Not retrieving" % (outFilePath))
             finished = True
             return finished
-        
+
         if finished:
             os.rename(outFilePath_tmp, outFilePath)
         else:
@@ -197,20 +199,20 @@ class Youtube(object):
             except OSError:
                 pass
         return finished
-    
-    
+
+
     @staticmethod
     def get_playlist_video_ids(playlist_id, html=None):
         """
         GET playlist_id
         RETURNS list() of all video ids from that playlist
-        
+
         Explanation:
           for the URL http://www.youtube.com/view_play_list?p=8EE54070B382E73A
           'playlist_id' shold be '8EE54070B382E73A'
         """
         playlist_url = "http://www.youtube.com/view_play_list?p=%s" % playlist_id
-        
+
         if not html:
             LOG.info('Downloading playlist %s from "%s"' % (playlist_id, playlist_url))
             html = urllib2.urlopen(playlist_url).read()
@@ -229,7 +231,7 @@ if __name__ == "__main__":
             help="Download all playlist videos to the current directory", default=None)
     parser.add_option("-f", "--formatcode", dest="formatcode",
             help="Download video of the specific format", default=None)
-    
+
     (options, args) = parser.parse_args()
     try:
         if options.playlist:
@@ -243,4 +245,4 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print "\nThank you for flying with youtube.py. Bye-bye."
         sys.exit(1)
-    
+
