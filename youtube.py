@@ -225,10 +225,13 @@ class Youtube(object):
 
 if __name__ == "__main__":
     LOG.setLevel(logging.DEBUG)
-    usage = "usage: %prog <youtube-video-id> [youtube-video-id,..]\n       %prog -p <playlist id>\n\nKnown video format codes:\n" + str(FMT_MAP.items())
+    formats = ""
+    for k,v in FMT_MAP.items():
+        formats = "%s %s -- %s\n" % (formats, k,v)
+    usage = "usage: %prog <youtube-video-id> [youtube-video-id,..]\n       %prog -p <playlist id>\n\nKnown video format codes:\n" + formats
     parser = optparse.OptionParser(usage=usage)
     parser.add_option("-p", "--playlist", dest="playlist",
-            help="Download all playlist videos to the current directory", default=None)
+            help="Download all playlist's videos into the current directory", default=None)
     parser.add_option("-f", "--formatcode", dest="formatcode",
             help="Download video of the specific format", default=None)
 
