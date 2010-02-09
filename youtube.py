@@ -30,7 +30,6 @@ FMT_MAP = {
 }
 
 def _reporthook(numblocks, blocksize, filesize, url=None):
-    #print "reporthook(%s, %s, %s)" % (numblocks, blocksize, filesize)
     base = os.path.basename(url)
     #XXX Should handle possible filesize=-1.
     try:
@@ -45,7 +44,6 @@ def geturl(url, dst):
     LOG.info("Saving video to '%s'" % (dst) )
     if sys.stdout.isatty():
         return urllib.urlretrieve(url, dst, lambda nb, bs, fs, url=url: _reporthook(nb,bs,fs,dst))
-        #sys.stdout.write('\n')
     else:
         return urllib.urlretrieve(url, dst)
 
@@ -91,7 +89,7 @@ class YoutubePlaylistHTMLParser(HTMLParser):
         if not tag == 'a':
             return 1
 
-        # Building dict() from attrs list(). It's easy to dealing with dict() later...
+        # Building dict() from attrs list(). It's easier to deal with dict() later...
         _attrs_dict = {}
         for attr in attrs:
             key, value = attr
@@ -110,7 +108,7 @@ class Youtube(object):
     @staticmethod
     def retriveYoutubePageToken(ID, htmlpage=None):
         """
-        Magick method witch extract session token from 'htmlpage'.
+        Magic method which extracts session token from 'htmlpage'.
         Session token needed for video download URL
         """
         if not htmlpage:
@@ -185,7 +183,7 @@ class Youtube(object):
         else:
             finished = Youtube.downloadYoutubeVideo(youtube_id, formatcode, outFilePath_tmp)
 
-        # if file exist on local node, do not download FLV one more.
+        # if file exists locally, do not download FLV again.
         if os.path.isfile(outFilePath):
             LOG.warning("We already have %s. Not retrieving" % (outFilePath))
             finished = True
@@ -216,7 +214,6 @@ class Youtube(object):
         if not html:
             LOG.info('Downloading playlist %s from "%s"' % (playlist_id, playlist_url))
             html = urllib2.urlopen(playlist_url).read()
-            #html = open('youtube.playlist.example.html').read()
         ypp = YoutubePlaylistHTMLParser()
         ypp.feed(html)
         return ypp.PLAYLIST_ITEMS
