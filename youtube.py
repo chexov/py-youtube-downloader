@@ -102,7 +102,7 @@ class YoutubePlaylistHTMLParser(HTMLParser):
             LOG.info("Found video id %s for %s" % (vid, _attrs_dict.get('title')) )
 
 
-YOUTUBE_VIDEO_URL = "http://www.youtube.com/watch?v=%s"
+YOUTUBE_WATCH_URL = "http://www.youtube.com/watch?v=%(video_id)s"
 
 class Youtube(object):
     '''Youtube class is created to download video from youtube.com.
@@ -117,7 +117,7 @@ class Youtube(object):
         """Returns source of video page, caching it
         """
         if self._pagesrc_cache is None:
-            url = YOUTUBE_VIDEO_URL % (self.video_id)
+            url = YOUTUBE_WATCH_URL % {'video_id': self.video_id}
             self._pagesrc_cache = urllib2.urlopen(url).read()
 
         return self._pagesrc_cache
