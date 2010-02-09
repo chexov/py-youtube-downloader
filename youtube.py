@@ -130,10 +130,9 @@ class Youtube(object):
         """
         match = re.search(r', "t": "([^&"]+)"', self.pagesrc)
         if match:
-            token = match.group(1)
+            return match.group(1)
         else:
             raise ValueError("Can't extract token from HTML page. Youtube changed layout. Please, contact to the author of this script")
-        return token
 
     def title(self):
         """Returns page title (if not found, uses the video ID as title)
