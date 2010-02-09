@@ -247,6 +247,11 @@ if __name__ == "__main__":
             help="Download video of the specific format", default=None)
 
     (options, args) = parser.parse_args()
+
+    if options.formatcode not in FMT_MAP:
+        log.critical("Unknown code format %s. Please, check known videoformats table" % formatcode)
+        sys.exit(1)
+
     try:
         if options.playlist:
             for vID in Youtube.get_playlist_video_ids(options.playlist):
