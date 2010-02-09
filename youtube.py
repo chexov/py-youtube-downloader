@@ -103,6 +103,7 @@ class YoutubePlaylistHTMLParser(HTMLParser):
 
 
 YOUTUBE_WATCH_URL = "http://www.youtube.com/watch?v=%(video_id)s"
+YOUTUBE_GETVIDEO_URL = "http://www.youtube.com/get_video.php?video_id=%(video_id)s&fmt=%(formatcode)s&t=%(token)s"
 
 class Youtube(object):
     '''Youtube class is created to download video from youtube.com.
@@ -151,15 +152,14 @@ class Youtube(object):
         else:
             return self.video_id
 
-    @staticmethod
-    def getVideourlByFormatcodeForID(youtube_id, formatcode):
+    def getVideourlByFormatcode(self, formatcode):
+        """Returns the URL for the video in the specified format
+        """
         if str(formatcode) not in FMT_MAP.keys():
-            log.critical("Unknown code format %s. Please, check known videoformats table" % str(formatcode) )
-            return None
-        videourl = None
-        token = Youtube.retrieveYoutubePageToken(youtube_id)
-        if token:
-            videourl = "http://www.youtube.com/get_video.php?video_id=%s&fmt=%s&t=%s" % (youtube_id, formatcode, token)
+            raise ValueError("Unknown format code %s" % formatcode)
+
+        token = self.pageToken()
+        videourl = YOUTUBE_GETVIDEO_URL % {"video_id": self.video_id, "formatcode":formatcode, "token": token}
         return videourl
 
     @staticmethod
