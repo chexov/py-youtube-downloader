@@ -106,7 +106,7 @@ class Youtube(object):
     '''Youtube class is created to download video from youtube.com.
     '''
     @staticmethod
-    def retriveYoutubePageToken(ID, htmlpage=None):
+    def retrieveYoutubePageToken(ID, htmlpage=None):
         """
         Magic method which extracts session token from 'htmlpage'.
         Session token needed for video download URL
@@ -123,7 +123,7 @@ class Youtube(object):
         return token
 
     @staticmethod
-    def retriveYoutubePageTitle(ID, htmlpage=None, clean=False):
+    def retrieveYoutubePageTitle(ID, htmlpage=None, clean=False):
         title = ID
         if not htmlpage:
             url = "http://www.youtube.com/watch?v=%s" % ID
@@ -143,7 +143,7 @@ class Youtube(object):
             log.critical("Unknown code format %s. Please, check known videoformats table" % str(formatcode) )
             return None
         videourl = None
-        token = Youtube.retriveYoutubePageToken(youtube_id)
+        token = Youtube.retrieveYoutubePageToken(youtube_id)
         if token:
             videourl = "http://www.youtube.com/get_video.php?video_id=%s&fmt=%s&t=%s" % (youtube_id, formatcode, token)
         return videourl
@@ -168,7 +168,7 @@ class Youtube(object):
         htmlpage = None
         if not outFilePath:
             htmlpage = urllib2.urlopen(url).read()
-            title = Youtube.retriveYoutubePageTitle(youtube_id, htmlpage, clean=True)
+            title = Youtube.retrieveYoutubePageTitle(youtube_id, htmlpage, clean=True)
             outFolder = os.getcwd()
             outFilePath = os.path.join(os.getcwd(), title + '.mp4')
 
