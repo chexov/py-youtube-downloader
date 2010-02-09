@@ -15,8 +15,8 @@ def test_getPageToken():
 def test_getPageTitle():
     """Tests retrieval of page title
     """
-    token = y.Youtube("QkzCi5mHvkc").title()
-    assertEqual(token, "65daysofstatic - radio protector")
+    title = y.Youtube("QkzCi5mHvkc").title()
+    assertEqual(title, "65daysofstatic - radio protector")
 
 if __name__ == '__main__':
     import nose
