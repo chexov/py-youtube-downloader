@@ -134,20 +134,22 @@ class Youtube(object):
             raise ValueError("Can't extract token from HTML page. Youtube changed layout. Please, contact to the author of this script")
         return token
 
-    @staticmethod
-    def retrieveYoutubePageTitle(ID, htmlpage=None, clean=False):
-        title = ID
-        if not htmlpage:
-            url = "http://www.youtube.com/watch?v=%s" % ID
-            htmlpage = urllib2.urlopen(url).read()
-        match = re.search(r"<title>(.+)</title>", htmlpage)
+    def title(self):
+        """Returns page title (if not found, uses the video ID as title)
+        """
+        reg = re.compile(r"<title>(.+)</title>", re.DOTALL)
+        match = reg.search(self.pagesrc)
         if match:
-            title = match.group(1)
-            title = title.decode('utf-8')
-            if clean:
-                title = re.sub(ur"[^a-zA-Z0-9\W]+", "_", title, re.UNICODE)
-                title = re.sub(ur"[\s\/]", "_", title, re.UNICODE)
-        return title
+            title = match.group(1).decode('utf-8')
+
+            # Remove newlines and "YouTube - " from title
+            title = title.replace("\n", "")
+            title = re.sub("YouTube.+?- ", "", title)
+            title = title.strip()
+
+            return title
+        else:
+            return self.video_id
 
     @staticmethod
     def getVideourlByFormatcodeForID(youtube_id, formatcode):
