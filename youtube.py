@@ -15,18 +15,18 @@ LOG = logging.getLogger("youtube.downloader")
 LOG.setLevel(logging.DEBUG)
 
 FMT_MAP = {
- '5': '320x240 H.263/MP3 mono FLV',
- '6': '320x240 H.263/MP3 mono FLV',
-'13': '176x144 3GP/AMR mono 3GP',
-'17': '176x144 3GP/AAC mono 3GP',
+ 5: '320x240 H.263/MP3 mono FLV',
+ 6: '320x240 H.263/MP3 mono FLV',
+13: '176x144 3GP/AMR mono 3GP',
+17: '176x144 3GP/AAC mono 3GP',
 
-'18': '480x360 480x270 H.264/AAC stereo MP4',
-'22': '1280x720 H.264/AAC stereo MP4',
+18: '480x360 480x270 H.264/AAC stereo MP4',
+22: '1280x720 H.264/AAC stereo MP4',
 
-'34': '320x240 H.264/AAC stereo FLV',
-'35': '640x480 640x360 H.264/AAC stereo FLV',
+34: '320x240 H.264/AAC stereo FLV',
+35: '640x480 640x360 H.264/AAC stereo FLV',
 
-'37': '1920x1080 H.264/AAC stereo MP4',
+37: '1920x1080 H.264/AAC stereo MP4',
 }
 
 def _reporthook(numblocks, blocksize, filesize, url=None):
@@ -155,16 +155,15 @@ class Youtube(object):
     def getVideourlByFormatcode(self, formatcode):
         """Returns the URL for the video in the specified format
         """
-        if str(formatcode) not in FMT_MAP.keys():
+        if formatcode not in FMT_MAP.keys():
             raise ValueError("Unknown format code %s" % formatcode)
 
         token = self.pageToken()
         videourl = YOUTUBE_GETVIDEO_URL % {"video_id": self.video_id, "formatcode":formatcode, "token": token}
         return videourl
 
-    @staticmethod
-    def downloadYoutubeVideo(youtube_id, formatcode, outFilePath=None):
-        LOG.debug("Getting video URL for video (%s)" % FMT_MAP.get(str(formatcode)) )
+    def downloadYoutubeVideo(self, formatcode, outFilePath=None):
+        LOG.debug("Getting video URL for video (%s)" % FMT_MAP.get(formatcode) )
         url = Youtube.getVideourlByFormatcodeForID(youtube_id, formatcode)
         if not url:
             LOG.debug("Can't get video url for %s format" % formatcode)
@@ -243,8 +242,8 @@ if __name__ == "__main__":
     parser = optparse.OptionParser(usage=usage)
     parser.add_option("-p", "--playlist", dest="playlist",
             help="Download all playlist's videos into the current directory", default=None)
-    parser.add_option("-f", "--formatcode", dest="formatcode",
-            help="Download video of the specific format", default=None)
+    parser.add_option("-f", "--formatcode", dest="formatcode", default=None, type="int",
+            help="Download video of the specific format")
 
     (options, args) = parser.parse_args()
 
