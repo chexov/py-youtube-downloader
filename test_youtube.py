@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
+def assertEqual(x, y):
+    assert x == y, "%r not equal to %r"
+
 import youtube as y
 def test_getPageToken():
     """Tests pageToken method returns sensible string
@@ -13,8 +16,7 @@ def test_getPageTitle():
     """Tests retrieval of page title
     """
     token = y.Youtube("QkzCi5mHvkc").title()
-    print token
-    assert False
+    assertEqual(token, "65daysofstatic - radio protector")
 
 if __name__ == '__main__':
     import nose
