@@ -161,13 +161,10 @@ class Youtube(object):
         videourl = YOUTUBE_GETVIDEO_URL % {"video_id": self.video_id, "formatcode":formatcode, "token": token}
         return videourl
 
-    def downloadYoutubeVideo(self, formatcode, outFilePath=None):
-        LOG.debug("Getting video URL for video (%s)" % FMT_MAP.get(formatcode) )
-        url = Youtube.getVideourlByFormatcodeForID(youtube_id, formatcode)
-        if not url:
-            LOG.debug("Can't get video url for %s format" % formatcode)
-        else:
-            return downloadFileByUrl(url, outFilePath)
+    def download(self, formatcode, outFilePath=None):
+        LOG.debug("Getting video URL for video (%s)" % FMT_MAP.get(formatcode))
+        url = self.videoUrl(youtube_id, formatcode)
+        return downloadFileByUrl(url, outFilePath)
 
     @staticmethod
     def run(youtube_id, outFilePath=None, formatcode=None):
