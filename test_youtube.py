@@ -18,6 +18,14 @@ def test_getPageTitle():
     title = y.Youtube("QkzCi5mHvkc").title()
     assertEqual(title, "65daysofstatic - radio protector")
 
+def test_videourlByFormatcode():
+    """Tests retrieval of URL
+    """
+    url = y.Youtube("QkzCi5mHvkc").getVideourlByFormatcode(5)
+    print url
+    assert url.startswith("http://"), "URL didn't start with http://"
+    assert False
+
 if __name__ == '__main__':
     import nose
     nose.main()
