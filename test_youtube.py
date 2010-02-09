@@ -5,6 +5,7 @@ def assertEqual(x, y):
     assert x == y, "%r not equal to %r"
 
 import youtube as y
+
 def test_getPageToken():
     """Tests pageToken method returns sensible string
     """
@@ -18,10 +19,10 @@ def test_getPageTitle():
     title = y.Youtube("QkzCi5mHvkc").title()
     assertEqual(title, "65daysofstatic - radio protector")
 
-def test_videourlByFormatcode():
+def test_videoUrl():
     """Tests retrieval of URL
     """
-    url = y.Youtube("QkzCi5mHvkc").getVideourlByFormatcode(5)
+    url = y.Youtube("QkzCi5mHvkc").videoUrl(5)
     print url
     assert url.startswith("http://"), "URL didn't start with http://"
 

@@ -151,7 +151,7 @@ class Youtube(object):
         else:
             return self.video_id
 
-    def getVideourlByFormatcode(self, formatcode):
+    def videoUrl(self, formatcode):
         """Returns the URL for the video in the specified format
         """
         if formatcode not in FMT_MAP.keys():
