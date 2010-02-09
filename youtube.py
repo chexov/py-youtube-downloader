@@ -102,20 +102,32 @@ class YoutubePlaylistHTMLParser(HTMLParser):
             LOG.info("Found video id %s for %s" % (vid, _attrs_dict.get('title')) )
 
 
+YOUTUBE_VIDEO_URL = "http://www.youtube.com/watch?v=%s"
+
 class Youtube(object):
     '''Youtube class is created to download video from youtube.com.
     '''
-    @staticmethod
-    def retrieveYoutubePageToken(ID, htmlpage=None):
+
+    def __init__(self, video_id):
+        self.video_id = video_id
+        self._pagesrc_cache = None
+
+    @property
+    def pagesrc(self):
+        """Returns source of video page, caching it
+        """
+        if self._pagesrc_cache is None:
+            url = YOUTUBE_VIDEO_URL % (self.video_id)
+            self._pagesrc_cache = urllib2.urlopen(url).read()
+
+        return self._pagesrc_cache
+
+    def pageToken(self):
         """
         Magic method which extracts session token from 'htmlpage'.
         Session token needed for video download URL
         """
-        if not htmlpage:
-            url = "http://www.youtube.com/watch?v=%s" % ID
-            #htmlpage="var fullscreenUrl = '/watch_fullscreen?fs=1&fexp=900142%2C900030%2C900162&iv_storage_server=http%3A%2F%2Fwww.google.com%2Freviews%2Fy%2F&creator=amiablewalker&sourceid=r&video_id=VJyTA4VlZus&l=353&sk=QtBR18Y95jsDyLXHgv9jbMu0ghb3MxoSU&fmt_map=34%2F0%2F9%2F0%2F115%2C5%2F0%2F7%2F0%2F0&t=vjVQa1PpcFPt0HhU0HkTG6A75-QxhAiV6WuMqB2a4r4%3D&hl=en&plid=AARnlkLz-d6cbsVe&vq=None&iv_module=http%3A%2F%2Fs.ytimg.com%2Fyt%2Fswf%2Fiv_module-vfl89178.swf&cr=US&sdetail=p%253Afriendfeed.com%2Feril&title=How To Learn Any Accent Part 1';"
-            htmlpage = urllib2.urlopen(url).read()
-        match = re.search(r', "t": "([^&"]+)"', htmlpage)
+        match = re.search(r', "t": "([^&"]+)"', self.pagesrc)
         if match:
             token = match.group(1)
         else:
