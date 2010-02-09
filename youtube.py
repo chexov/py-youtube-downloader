@@ -124,7 +124,7 @@ class Youtube(object):
 
     def pageToken(self):
         """
-        Magic method which extracts session token from 'htmlpage'.
+        Extracts session token from the page.
         Session token needed for video download URL
         """
         match = re.search(r', "t": "([^&"]+)"', self.pagesrc)
