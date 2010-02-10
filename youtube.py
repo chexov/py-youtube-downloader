@@ -14,6 +14,9 @@ logging.basicConfig()
 LOG = logging.getLogger("youtube.downloader")
 LOG.setLevel(logging.DEBUG)
 
+class NoSuchVideo(Exception):
+    pass
+
 FMT_MAP = {
  5: '320x240 H.263/MP3 mono FLV',
  6: '320x240 H.263/MP3 mono FLV',
@@ -48,21 +51,21 @@ def geturl(url, dst):
         return urllib.urlretrieve(url, dst)
 
 def downloadFileByUrl(url, filename=None):
-   data = None
-   try:
-       f = urllib2.urlopen(url)
-       if filename:
-           geturl(url, filename)
-           return True
-       else:
-           data = f.read()
-           f.close()
-   except IOError, e:
-       LOG.critical("Can't process with download: %s" % e)
-       return None
-   except urllib2.HTTPError, e:
-       LOG.critical("Can't process with download: %s" % e)
-       return None
+    # Check if URL exists
+    try:
+        f = urllib2.urlopen(url)
+    except urllib2.HTTPError, e:
+        raise NoSuchVideo(unicode(e))
+
+    if filename:
+        # If filename is specified, download using urllib.urlretrieve
+        geturl(url, filename)
+        return True
+    else:
+        # If no filename, return data
+        data = f.read()
+        f.close()
+        return data
 
 
 class YoutubePlaylistHTMLParser(HTMLParser):
@@ -161,42 +164,31 @@ class Youtube(object):
         videourl = YOUTUBE_GETVIDEO_URL % {"video_id": self.video_id, "formatcode":formatcode, "token": token}
         return videourl
 
-    def download(self, formatcode, outFilePath=None):
-        LOG.debug("Getting video URL for video (%s)" % FMT_MAP.get(formatcode))
-        url = self.videoUrl(youtube_id, formatcode)
-        return downloadFileByUrl(url, outFilePath)
 
-    @staticmethod
-    def run(youtube_id, outFilePath=None, formatcode=None):
-        """
-        GET youtube video ID 'youtube_id'
-        RETURNS True is file properly downloaded and saved to local disk
-                False in case of error
-        """
-        url = "http://www.youtube.com/watch?v=%s" % youtube_id
-        htmlpage = None
-        if not outFilePath:
-            htmlpage = urllib2.urlopen(url).read()
-            title = Youtube.retrieveYoutubePageTitle(youtube_id, htmlpage, clean=True)
-            outFolder = os.getcwd()
-            outFilePath = os.path.join(os.getcwd(), title + '.mp4')
+def download(video_id, outFilePath, formatcode = None):
+    """Downloads the specified video id to the specified path
+    """
+    if formatcode is not None:
+        LOG.debug("Getting video URL for video (%s, format: %s)" % (video_id, FMT_MAP.get(formatcode)))
+        totry = [formatcode]
+    else:
+        # Try all formats, in reverse order
+        LOG.debug("Getting video URL for video (%s, format: largest)" % video_id)
+        totry = sorted(FMT_MAP.keys())[::-1]
 
-        outFilePath_tmp = outFilePath + ".part"
-        data = None
-        finished = False
+    video = Youtube(video_id)
+    for curcode in totry:
+        url = video.videoUrl(curcode)
+        try:
+            return downloadFileByUrl(url, outFilePath)
+        except NoSuchVideo, e:
+            LOG.info("Formatcode %s did not exist" % curcode)
+    else:
+        raise NoSuchVideo("Tried following formatcodes: %s. Non existed" % ", ".join(str(x) for x in totry))
 
-        if formatcode not in FMT_MAP.keys():
-            finished = Youtube.downloadYoutubeVideo(youtube_id, '22', outFilePath_tmp)
-            if not finished:
-                finished = Youtube.downloadYoutubeVideo(youtube_id, '18', outFilePath_tmp)
-        else:
-            finished = Youtube.downloadYoutubeVideo(youtube_id, formatcode, outFilePath_tmp)
-
-        # if file exists locally, do not download FLV again.
-        if os.path.isfile(outFilePath):
-            LOG.warning("We already have %s. Not retrieving" % (outFilePath))
-            finished = True
-            return finished
+if __name__ == '__main__':
+    download("QkzCi5mHvkc", outFilePath = "yay.flv", formatcode = None)
+sys.exit(0)
 
         if finished:
             os.rename(outFilePath_tmp, outFilePath)
