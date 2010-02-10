@@ -132,7 +132,7 @@ class Youtube(object):
         if match:
             return match.group(1)
         else:
-            raise ValueError("Can't extract token from HTML page. Youtube changed layout. Please, contact to the author of this script")
+            raise ValueError("Can't extract token from HTML page. Invalid URL or Youtube changed layout. Please, contact the author of this script")
 
     def title(self):
         """Returns page title (if not found, uses the video ID as title)
