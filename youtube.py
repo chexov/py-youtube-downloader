@@ -154,7 +154,7 @@ class Youtube(object):
     def videoUrl(self, formatcode):
         """Returns the URL for the video in the specified format
         """
-        if formatcode not in FMT_MAP.keys():
+        if formatcode is not None and formatcode not in FMT_MAP.keys():
             raise ValueError("Unknown format code %s" % formatcode)
 
         token = self.pageToken()
