@@ -190,34 +190,64 @@ if __name__ == '__main__':
     download("QkzCi5mHvkc", outFilePath = "yay.flv", formatcode = None)
 sys.exit(0)
 
-        if finished:
-            os.rename(outFilePath_tmp, outFilePath)
-        else:
-            try:
-                os.remove(outFilePath_tmp)
-            except OSError:
-                pass
+def run(self, outFilePath=None, formatcode=None):
+    """
+    GET youtube video ID 'youtube_id'
+    RETURNS True is file properly downloaded and saved to local disk
+            False in case of error
+    """
+    url = "http://www.youtube.com/watch?v=%s" % youtube_id
+    htmlpage = None
+    if not outFilePath:
+        htmlpage = urllib2.urlopen(url).read()
+        title = Youtube.retrieveYoutubePageTitle(youtube_id, htmlpage, clean=True)
+        outFolder = os.getcwd()
+        outFilePath = os.path.join(os.getcwd(), title + '.mp4')
+
+    outFilePath_tmp = outFilePath + ".part"
+    data = None
+    finished = False
+
+    if formatcode not in FMT_MAP.keys():
+        finished = Youtube.downloadYoutubeVideo(youtube_id, '22', outFilePath_tmp)
+        if not finished:
+            finished = Youtube.downloadYoutubeVideo(youtube_id, '18', outFilePath_tmp)
+    else:
+        finished = Youtube.downloadYoutubeVideo(youtube_id, formatcode, outFilePath_tmp)
+
+    # if file exists locally, do not download FLV again.
+    if os.path.isfile(outFilePath):
+        LOG.warning("We already have %s. Not retrieving" % (outFilePath))
+        finished = True
         return finished
 
+    if finished:
+        os.rename(outFilePath_tmp, outFilePath)
+    else:
+        try:
+            os.remove(outFilePath_tmp)
+        except OSError:
+            pass
+    return finished
 
-    @staticmethod
-    def get_playlist_video_ids(playlist_id, html=None):
-        """
-        GET playlist_id
-        RETURNS list() of all video ids from that playlist
 
-        Explanation:
-          for the URL http://www.youtube.com/view_play_list?p=8EE54070B382E73A
-          'playlist_id' shold be '8EE54070B382E73A'
-        """
-        playlist_url = "http://www.youtube.com/view_play_list?p=%s" % playlist_id
+def get_playlist_video_ids(playlist_id):
+    """
+    GET playlist_id
+    RETURNS list() of Youtube instances for each video
 
-        if not html:
-            LOG.info('Downloading playlist %s from "%s"' % (playlist_id, playlist_url))
-            html = urllib2.urlopen(playlist_url).read()
-        ypp = YoutubePlaylistHTMLParser()
-        ypp.feed(html)
-        return ypp.PLAYLIST_ITEMS
+    Explanation:
+      for the URL http://www.youtube.com/view_play_list?p=8EE54070B382E73A
+      'playlist_id' should be '8EE54070B382E73A'
+    """
+    playlist_url = "http://www.youtube.com/view_play_list?p=%s" % playlist_id
+
+    if not html:
+        LOG.info('Downloading playlist %s from "%s"' % (playlist_id, playlist_url))
+        html = urllib2.urlopen(playlist_url).read()
+    ypp = YoutubePlaylistHTMLParser()
+    ypp.feed(html)
+    return ypp.PLAYLIST_ITEMS
 
 
 
@@ -226,6 +256,7 @@ if __name__ == "__main__":
     formats = ""
     for k,v in FMT_MAP.items():
         formats = "%s %s -- %s\n" % (formats, k,v)
+
     usage = "usage: %prog <youtube-video-id> [youtube-video-id,..]\n       %prog -p <playlist id>\n\nKnown video format codes:\n" + formats
     parser = optparse.OptionParser(usage=usage)
     parser.add_option("-p", "--playlist", dest="playlist",
