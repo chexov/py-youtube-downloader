@@ -10,27 +10,29 @@ import os
 import re
 from HTMLParser import HTMLParser
 
-logging.basicConfig()
-LOG = logging.getLogger("youtube.downloader")
-LOG.setLevel(logging.DEBUG)
-
-class NoSuchVideo(Exception):
-    pass
-
 FMT_MAP = {
  5: '320x240 H.263/MP3 mono FLV',
  6: '320x240 H.263/MP3 mono FLV',
 13: '176x144 3GP/AMR mono 3GP',
 17: '176x144 3GP/AAC mono 3GP',
 
-18: '480x360 480x270 H.264/AAC stereo MP4',
-22: '1280x720 H.264/AAC stereo MP4',
-
 34: '320x240 H.264/AAC stereo FLV',
 35: '640x480 640x360 H.264/AAC stereo FLV',
 
+18: '480x360 480x270 H.264/AAC stereo MP4',
+22: '1280x720 H.264/AAC stereo MP4',
+
 37: '1920x1080 H.264/AAC stereo MP4',
 }
+
+FMT_MAP_PRIORITY = [37, 22, 18, 35, 34, 17, 13, 6, 5] # The coolest format is first
+
+
+
+
+logging.basicConfig()
+LOG = logging.getLogger("youtube.downloader")
+LOG.setLevel(logging.DEBUG)
 
 def _reporthook(numblocks, blocksize, filesize, url=None):
     base = os.path.basename(url)
@@ -105,8 +107,12 @@ class YoutubePlaylistHTMLParser(HTMLParser):
             LOG.info("Found video id %s for %s" % (vid, _attrs_dict.get('title')) )
 
 
+
 YOUTUBE_WATCH_URL = "http://www.youtube.com/watch?v=%(video_id)s"
 YOUTUBE_GETVIDEO_URL = "http://www.youtube.com/get_video.php?video_id=%(video_id)s&fmt=%(formatcode)s&t=%(token)s"
+
+class NoSuchVideo(Exception):
+    pass
 
 class Youtube(object):
     '''Youtube class is created to download video from youtube.com.
@@ -144,22 +150,22 @@ class Youtube(object):
         match = reg.search(self.pagesrc)
         if match:
             title = match.group(1).decode('utf-8')
-
-            # Remove newlines and "YouTube - " from title
+            
+            # Remove newlines and "YouTube - " from the title
             title = title.replace("\n", "")
             title = re.sub("YouTube.+?- ", "", title)
             title = title.strip()
-
+            
             return title
         else:
             return self.video_id
-
+    
     def videoUrl(self, formatcode):
         """Returns the URL for the video in the specified format
         """
         if formatcode is not None and formatcode not in FMT_MAP.keys():
             raise ValueError("Unknown format code %s" % formatcode)
-
+        
         token = self.pageToken()
         videourl = YOUTUBE_GETVIDEO_URL % {"video_id": self.video_id, "formatcode":formatcode, "token": token}
         return videourl
@@ -174,21 +180,19 @@ def download(video_id, outFilePath, formatcode = None):
     else:
         # Try all formats, in reverse order
         LOG.debug("Getting video URL for video (%s, format: largest)" % video_id)
-        totry = sorted(FMT_MAP.keys())[::-1]
-
+        totry = FMT_MAP_PRIORITY
+    
     video = Youtube(video_id)
     for curcode in totry:
         url = video.videoUrl(curcode)
         try:
+            LOG.info("Trying %s format (%s)" % (FMT_MAP.get(curcode), curcode) )
             return downloadFileByUrl(url, outFilePath)
         except NoSuchVideo, e:
             LOG.info("Formatcode %s did not exist" % curcode)
     else:
         raise NoSuchVideo("Tried following formatcodes: %s. Non existed" % ", ".join(str(x) for x in totry))
 
-if __name__ == '__main__':
-    download("QkzCi5mHvkc", outFilePath = "yay.flv", formatcode = None)
-sys.exit(0)
 
 def run(self, outFilePath=None, formatcode=None):
     """
@@ -203,24 +207,24 @@ def run(self, outFilePath=None, formatcode=None):
         title = Youtube.retrieveYoutubePageTitle(youtube_id, htmlpage, clean=True)
         outFolder = os.getcwd()
         outFilePath = os.path.join(os.getcwd(), title + '.mp4')
-
+    
     outFilePath_tmp = outFilePath + ".part"
     data = None
     finished = False
-
+    
     if formatcode not in FMT_MAP.keys():
         finished = Youtube.downloadYoutubeVideo(youtube_id, '22', outFilePath_tmp)
         if not finished:
             finished = Youtube.downloadYoutubeVideo(youtube_id, '18', outFilePath_tmp)
     else:
         finished = Youtube.downloadYoutubeVideo(youtube_id, formatcode, outFilePath_tmp)
-
+    
     # if file exists locally, do not download FLV again.
     if os.path.isfile(outFilePath):
         LOG.warning("We already have %s. Not retrieving" % (outFilePath))
         finished = True
         return finished
-
+    
     if finished:
         os.rename(outFilePath_tmp, outFilePath)
     else:
@@ -231,7 +235,7 @@ def run(self, outFilePath=None, formatcode=None):
     return finished
 
 
-def get_playlist_video_ids(playlist_id):
+def get_playlist_video_ids(playlist_id, html=None):
     """
     GET playlist_id
     RETURNS list() of Youtube instances for each video
@@ -256,27 +260,30 @@ if __name__ == "__main__":
     formats = ""
     for k,v in FMT_MAP.items():
         formats = "%s %s -- %s\n" % (formats, k,v)
-
-    usage = "usage: %prog <youtube-video-id> [youtube-video-id,..]\n       %prog -p <playlist id>\n\nKnown video format codes:\n" + formats
+    
+    usage = "usage: %prog <youtube-video-id> [youtube-video-id,..]\n" + \
+            "%prog -p <playlist id>\n\nKnown video format codes:\n" + formats
     parser = optparse.OptionParser(usage=usage)
+    parser.add_option("-o", "--outfile", dest="outfilepath",
+            help="Override default output file name. Works for ", default=None)
     parser.add_option("-p", "--playlist", dest="playlist",
             help="Download all playlist's videos into the current directory", default=None)
     parser.add_option("-f", "--formatcode", dest="formatcode", default=None, type="int",
             help="Download video of the specific format")
-
+    
     (options, args) = parser.parse_args()
-
-    if options.formatcode not in FMT_MAP:
-        log.critical("Unknown code format %s. Please, check known videoformats table" % formatcode)
+    
+    if options.formatcode and options.formatcode not in FMT_MAP:
+        LOG.critical("Unknown code format %s. Please, check videoformats codes" % options.formatcode)
         sys.exit(1)
-
+    
     try:
         if options.playlist:
-            for vID in Youtube.get_playlist_video_ids(options.playlist):
-                Youtube.run(vID, formatcode=options.formatcode)
+            for vID in get_playlist_video_ids(options.playlist):
+                download(vID, outFilePath=None, formatcode=options.formatcode)
         elif len(args) > 0:
             for vID in args:
-                Youtube.run(vID, formatcode=options.formatcode)
+                download(vID, outFilePath=None, formatcode=options.formatcode)
         else:
             parser.print_help()
     except KeyboardInterrupt:
