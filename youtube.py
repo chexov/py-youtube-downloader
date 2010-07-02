@@ -60,11 +60,11 @@ def downloadFileByUrl(url, filename=None):
         raise NoSuchVideo(unicode(e))
 
     if filename:
-        # If filename is specified, download using urllib.urlretrieve
+        LOG.debug("Filename is specified, download using urllib.urlretrieve")
         geturl(url, filename)
         return True
     else:
-        # If no filename, return data
+        LOG.debug("No filename, return data")
         data = f.read()
         f.close()
         return data
@@ -171,7 +171,7 @@ class Youtube(object):
         return videourl
 
 
-def download(video_id, outFilePath, formatcode = None):
+def download(video_id, outFilePath=None, formatcode = None):
     """Downloads the specified video id to the specified path
     """
     if formatcode is not None:
@@ -181,8 +181,11 @@ def download(video_id, outFilePath, formatcode = None):
         # Try all formats, in reverse order
         LOG.debug("Getting video URL for video (%s, format: largest)" % video_id)
         totry = FMT_MAP_PRIORITY
-    
+
     video = Youtube(video_id)
+    if not outFilePath:
+        outFilePath = os.path.join(os.getcwd(), video.title() + '.mp4')
+
     for curcode in totry:
         url = video.videoUrl(curcode)
         try:
