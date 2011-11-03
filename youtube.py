@@ -100,11 +100,11 @@ class YoutubePlaylistHTMLParser(HTMLParser):
             key, value = attr
             _attrs_dict[key] = value
 
-        if _attrs_dict.get('id') and _attrs_dict.get('id').find('video-long-title') > -1:
-            # We need only HREFs with 'id' == 'video-long-title.*'
+        if _attrs_dict and len(_attrs_dict) == 1 and _attrs_dict.get('href') and  _attrs_dict.get('href').find('/watch?v=') > -1:
+            # We need only HREFs with v=VIDEOID in it
             vid = self.__extract_video_id_from_uri(_attrs_dict['href'])
             self.PLAYLIST_ITEMS.append(vid)
-            LOG.info("Found video id %s for %s" % (vid, _attrs_dict.get('title')) )
+            LOG.info("Found video id %s" % (vid))
 
 
 
@@ -137,10 +137,11 @@ class Youtube(object):
         Extracts session token from the page.
         Session token needed for video download URL
         """
-        match = re.search(r', "t": "([^&"]+)"', self.pagesrc)
+        match = re.search(r'"t": "([^&"]+)"', self.pagesrc)
         if match:
             return match.group(1)
         else:
+            print self.pagesrc
             raise ValueError("Can't extract token from HTML page. Invalid URL or Youtube changed layout. Please, contact the author of this script")
 
     def title(self):
@@ -150,22 +151,22 @@ class Youtube(object):
         match = reg.search(self.pagesrc)
         if match:
             title = match.group(1).decode('utf-8')
-            
+
             # Remove newlines and "YouTube - " from the title
             title = title.replace("\n", "")
             title = re.sub("YouTube.+?- ", "", title)
             title = title.strip()
-            
+
             return title
         else:
             return self.video_id
-    
+
     def videoUrl(self, formatcode):
         """Returns the URL for the video in the specified format
         """
         if formatcode is not None and formatcode not in FMT_MAP.keys():
             raise ValueError("Unknown format code %s" % formatcode)
-        
+
         token = self.pageToken()
         videourl = YOUTUBE_GETVIDEO_URL % {"video_id": self.video_id, "formatcode":formatcode, "token": token}
         return videourl
@@ -210,24 +211,24 @@ def run(self, outFilePath=None, formatcode=None):
         title = Youtube.retrieveYoutubePageTitle(youtube_id, htmlpage, clean=True)
         outFolder = os.getcwd()
         outFilePath = os.path.join(os.getcwd(), title + '.mp4')
-    
+
     outFilePath_tmp = outFilePath + ".part"
     data = None
     finished = False
-    
+
     if formatcode not in FMT_MAP.keys():
         finished = Youtube.downloadYoutubeVideo(youtube_id, '22', outFilePath_tmp)
         if not finished:
             finished = Youtube.downloadYoutubeVideo(youtube_id, '18', outFilePath_tmp)
     else:
         finished = Youtube.downloadYoutubeVideo(youtube_id, formatcode, outFilePath_tmp)
-    
+
     # if file exists locally, do not download FLV again.
     if os.path.isfile(outFilePath):
         LOG.warning("We already have %s. Not retrieving" % (outFilePath))
         finished = True
         return finished
-    
+
     if finished:
         os.rename(outFilePath_tmp, outFilePath)
     else:
@@ -263,7 +264,7 @@ if __name__ == "__main__":
     formats = ""
     for k,v in FMT_MAP.items():
         formats = "%s %s -- %s\n" % (formats, k,v)
-    
+
     usage = "usage: %prog <youtube-video-id> [youtube-video-id,..]\n" + \
             "%prog -p <playlist id>\n\nKnown video format codes:\n" + formats
     parser = optparse.OptionParser(usage=usage)
@@ -273,13 +274,13 @@ if __name__ == "__main__":
             help="Download all playlist's videos into the current directory", default=None)
     parser.add_option("-f", "--formatcode", dest="formatcode", default=None, type="int",
             help="Download video of the specific format")
-    
+
     (options, args) = parser.parse_args()
-    
+
     if options.formatcode and options.formatcode not in FMT_MAP:
         LOG.critical("Unknown code format %s. Please, check videoformats codes" % options.formatcode)
         sys.exit(1)
-    
+
     try:
         if options.playlist:
             for vID in get_playlist_video_ids(options.playlist):
